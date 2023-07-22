@@ -1,20 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import logging
 from datetime import datetime, timedelta
 from os import getenv
 from os.path import join, abspath, dirname
 
 import httpx
 from flask import Flask, jsonify, request, render_template, redirect, url_for, make_response
-from pandora.exts.hooks import hook_logging
-from pandora.exts.token import check_access_token
-from pandora.openai.auth import Auth0
 from waitress import serve
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.serving import WSGIRequestHandler
 
 from . import __version__
+from .exts.token import check_access_token
 
 
 class ChatBot:
@@ -22,15 +19,8 @@ class ChatBot:
     __default_port = 8018
     __build_id = 'm__df_2bcLUqGXlko-rBN'
 
-    def __init__(self, proxy, debug=False, sentry=False, login_local=False):
+    def __init__(self, proxy):
         self.proxy = proxy
-        self.debug = debug
-        self.sentry = sentry
-        self.login_local = login_local
-        self.log_level = logging.DEBUG if debug else logging.WARN
-
-        hook_logging(level=self.log_level, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
-        self.logger = logging.getLogger('waitress')
 
     def run(self, bind_str, threads=8, listen=True):
         host, port = self.__parse_bind(bind_str)
@@ -68,8 +58,7 @@ class ChatBot:
         app.route('/auth/login', methods=['POST'])(self.login_post)
         app.route('/auth/login_token', methods=['POST'])(self.login_token)
 
-        if not self.debug:
-            self.logger.warning('Serving on http://{}:{}'.format(host, port))
+        print('Serving on http://{}:{}'.format(host, port))
 
         WSGIRequestHandler.protocol_version = 'HTTP/1.1'
         if listen:
@@ -167,7 +156,8 @@ class ChatBot:
 
         if username and password:
             try:
-                access_token = Auth0(username, password, self.proxy, mfa=mfa_code).auth(self.login_local)
+                raise Exception('regular login is not supported')
+                access_token = None
                 payload = check_access_token(access_token)
 
                 resp = make_response('please wait...', 302)
